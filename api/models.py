@@ -1,11 +1,12 @@
 from django.db import models
 from ckeditor_uploader.fields import RichTextUploadingField
+from django.core.exceptions import ValidationError
+import os
 
 class Post(models.Model):
     img = models.ImageField(upload_to='posts/')
     title = models.CharField(max_length=200)
-    description = models.TextField()
-    ckeditor = RichTextUploadingField()  # CKEditor с загрузкой изображений
+    ckeditor = RichTextUploadingField()
 
     class Meta:
         verbose_name = 'Наши услуги'
@@ -18,7 +19,6 @@ class Post(models.Model):
 class About(models.Model):
     img = models.ImageField(upload_to='about/', verbose_name='Фото')
     title = models.CharField(max_length=255, verbose_name='Название')
-    description = models.TextField(verbose_name='Описание проекта')
 
     def __str__(self):
         return self.title
@@ -26,8 +26,6 @@ class About(models.Model):
 class Project(models.Model):
     img = models.ImageField(upload_to='projects/', verbose_name='Фото проекта')
     title = models.CharField(max_length=255, verbose_name='Название проекта')
-    description = models.TextField(verbose_name='Описание проекта')
-    link = models.URLField(blank=True, null=True, verbose_name='Ссылка на проект')
 
     class Meta:
         verbose_name = 'Проект'
@@ -49,10 +47,6 @@ class Consultation(models.Model):
     def __str__(self):
         return f'{self.name} ({self.phone})'
 
-from django.db import models
-
-
-# ⚙️ Инструменты / Технологии
 class Tool(models.Model):
     img = models.ImageField(upload_to='tools/', verbose_name='Логотип')
     title = models.CharField(max_length=255, verbose_name='Название технологии')
@@ -65,13 +59,11 @@ class Tool(models.Model):
         return self.title
 
 
-from django.db import models
-
 class Review(models.Model):
     name = models.CharField(max_length=100, verbose_name='Имя клиента')
     position = models.CharField(max_length=150, verbose_name='Должность / компания')
-    text = models.TextField(verbose_name='Отзыв')
-    photo = models.ImageField(upload_to='reviews/', verbose_name='Фото', blank=True, null=True)
+    description = models.TextField(verbose_name='Отзыв')
+    img = models.ImageField(upload_to='reviews/', verbose_name='Фото', blank=True, null=True)
 
     class Meta:
         verbose_name = 'Отзыв'
@@ -79,3 +71,101 @@ class Review(models.Model):
 
     def __str__(self):
         return f'{self.name} — {self.position}'
+
+class Design(models.Model):
+    img = models.ImageField(upload_to='Design')
+    title = models.CharField(max_length=255)
+    description = RichTextUploadingField()
+
+    class Meta:
+        verbose_name = 'Дизайн'
+        verbose_name_plural = 'Дизайны'
+
+    def __str__(self):
+        return self.title
+
+
+def validate_resume(value):
+    ext = os.path.splitext(value.name)[1]
+    valid_extensions = ['.pdf', '.docx']
+    if ext.lower() not in valid_extensions:
+        raise ValidationError("Можно загружать только PDF или DOCX файлы")
+
+
+class Vacancy(models.Model):
+    title = models.CharField(max_length=255, verbose_name="Название вакансии")
+    description = RichTextUploadingField(verbose_name="Описание вакансии")
+
+    class Meta:
+        verbose_name = "Вакансия"
+        verbose_name_plural = "Вакансии"
+
+    def __str__(self):
+        return self.title
+
+
+class VacancyApplication(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Имя")
+    email = models.EmailField(verbose_name="Email")
+    phone = models.CharField(max_length=50, verbose_name="Телефон")
+    linkedin = models.URLField(verbose_name="Ссылка на соцсеть", blank=True, null=True)
+    resume = models.FileField(upload_to="resumes/", verbose_name="Резюме", blank=True, null=True, validators=[validate_resume])
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата отправки")
+
+    class Meta:
+        verbose_name = "Отклик на вакансию"
+        verbose_name_plural = "Отклики"
+
+    def __str__(self):
+        return f"{self.name} — {self.email}"
+
+
+
+class Contact(models.Model):
+    name = models.CharField(max_length=100, verbose_name='Имя')
+    phone = models.CharField(max_length=50, verbose_name='Телефон')
+    message = models.TextField(verbose_name='Что вас интересует?')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Контактная заявка'
+        verbose_name_plural = 'Контактные заявки'
+
+    def __str__(self):
+        return f'{self.name} - {self.phone}'
+
+
+class ContactInfo(models.Model):
+    address = models.CharField(max_length=255, verbose_name='Адрес')
+    schedule = models.CharField(max_length=100, verbose_name='Режим работы')
+    phone = models.CharField(max_length=50, verbose_name='Номер телефона')
+
+    class Meta:
+        verbose_name = 'Контактная информация'
+        verbose_name_plural = 'Контактная информация'
+
+    def __str__(self):
+        return 'Контакты компании'
+
+class ViewJob(models.Model):
+    LEVEL_CHOICES = [
+        ('Intern', 'Intern'),
+        ('Junior', 'Junior'),
+        ('Middle', 'Middle'),
+        ('Senior', 'Senior'),
+    ]
+
+    WORK_TYPE_CHOICES = [
+        ('office', 'Полный рабочий день'),
+        ('remote', 'Удаленно'),
+        ('hybrid', 'Гибридный график'),
+    ]
+
+    title = models.CharField(max_length=255, verbose_name="Название вакансии")
+    description = models.TextField(verbose_name="Описание")
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, verbose_name="Уровень")
+    work_type = models.CharField(max_length=20, choices=WORK_TYPE_CHOICES, verbose_name="График работы")
+
+    def __str__(self):
+        return f"{self.title} ({self.level})"
